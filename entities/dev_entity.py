@@ -1,9 +1,9 @@
 import datetime
 
-from orm_st.main import Field
+from orm_st.main import Field, Model
 
 
-class TestEntity:
+class TestEntity(Model):
     #name = Field() -> without type validation (deprecated)
     name = Field(str)
     last_name = Field(str)
