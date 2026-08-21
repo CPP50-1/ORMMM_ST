@@ -17,7 +17,11 @@ class Model(metaclass=ModelMeta):
 
     # Should allow us to create an object instance
     def __init__(self, **kwargs):
-        pass
+        for field_name, field in self.__fields__.items():
+            if field_name in kwargs:
+                setattr(self, field_name, kwargs[field_name]) #setattr() lets Field descriptor do validation and stuff
+            elif field.default is not None:
+                setattr(self, field_name, field.default)
 
     #CRUD methods
 
