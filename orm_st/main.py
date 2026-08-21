@@ -14,6 +14,34 @@ class ModelMeta(type):
 
 # Model class will be an ORM operations provider get_by_id, get_all, delete, save, etc...
 class Model(metaclass=ModelMeta):
+
+    # Should allow us to create an object instance
+    def __init__(self, **kwargs):
+        pass
+
+    #CRUD methods
+
+    #CREATE: insert a new record
+    def create(self):
+        pass
+    #READ: get by id, get all, get by value in field, get containing...
+    def get_by_id(self, record_id):
+        pass
+
+    def get_all(self):
+        pass
+
+    def get_by_field(self, record_field, value):
+        pass
+
+    def get_all_matching(self, value):
+        pass
+    #UPDATE: ...
+    def update(self, **kwargs):
+        pass
+    #DELETE: ...
+    def delete(self):
+        pass
     pass
 
 class Field:
