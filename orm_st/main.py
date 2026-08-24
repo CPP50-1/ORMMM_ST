@@ -23,31 +23,62 @@ class Model(metaclass=ModelMeta):
             elif field.default is not None:
                 setattr(self, field_name, field.default)
 
-    #CRUD methods
+    # CRUD methods
+    # When interacting with table/Model
+    #         User
+    #          │
+    #   ┌──────┼──────┐
+    #   │      │      │
+    # create  get  filter
+
+
 
     #CREATE: insert a new record
-    def create(self):
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def create(cls, **kwargs):
         pass
     #READ: get by id, get all, get by value in field, get containing...
-    def get_by_id(self, record_id):
+    #Is a class method because this operation does not require an instance of the object
+
+    @classmethod
+    def get_by_id(cls, record_id):
         pass
 
-    def get_all(self):
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def get_all(cls):
         pass
 
-    def get_by_field(self, record_field, value):
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def get_by_field(cls, record_field, value):
         pass
 
-    def get_all_matching(self, value):
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def get_all_matching(cls, value):
         pass
+
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def get(cls, **kwargs):
+        pass
+
+    # When interacting with a specific database row : Update/Delete
     #UPDATE: ...
+    #This method acts on a specific instance
     def update(self, **kwargs):
         pass
+
     #DELETE: ...
+    #This method acts on a specific instance
     def delete(self):
         pass
     pass
 
+
+#This class allows incorporate metadata onf Field properties on a class
 class Field:
     field_type = None
     sql_type = None
@@ -80,7 +111,7 @@ class Field:
         # End: field type validation
 
         # A dictionary or other mapping object used to store an object's (writable) attributes.
-        instance.__dict__[self.name] = value
+        instance.__dict__[self.name] = value    # -> will evolve...
 
     def __delete__(self, instance):
         pass
