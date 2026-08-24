@@ -1,10 +1,11 @@
 import datetime
 
-from orm_st.main import Field, Model
+from orm_st.main import Model, Field, IntField
 
 
 class TestEntity(Model):
     #name = Field() -> without type validation (deprecated)
+    id = Field(int, primary_key=True,required=True)
     name = Field(str)
     last_name = Field(str)
     birth_date = Field(datetime.date)
@@ -13,19 +14,23 @@ class TestEntity(Model):
         return f"{self.name}, {self.last_name} {self.birth_date}"
 
 
-test1 = TestEntity()
-test1.name = "John"
-test1.last_name = "Connor"
-test1.birth_date = datetime.date(1985, 2, 28)
+test1 = TestEntity(
+    id = 1,
+    name = "John",
+    last_name = "Connor",
+    birth_date = datetime.date(1985, 2, 28),
+)
 
-test2 = TestEntity()
-test2.name = "Sarah"
-test2.last_name = "Connor"
-test2.birth_date = "1965-08-30"
+test2 = TestEntity(
+    id = 2,
+    name = "Sarah",
+    last_name = "Connor",
+    birth_date = datetime.date(1965, 8, 30),#"1965-08-30",
+)
 
 try:
-    print(test1)
-    print(test2)
+    print(test1._state.persisted)
+    #print(test2)
 except TypeError:
     print ("TypeError")
 
