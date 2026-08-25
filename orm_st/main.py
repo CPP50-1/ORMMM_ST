@@ -1,8 +1,62 @@
+class Field:
+    sql_type = None
+
+    def __init__(self, field_type, *, column = None, primary_key = False, required=False, default=None):
+        self.field_type = field_type
+        self.column = column
+        self.primary_key = primary_key
+        self.required = required
+        self.default = default
+
+    def __set_name__(self, owner, name):
+        self.name = name
+        if self.column is None:     #Separating database name from class name
+            self.column = name
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        if self.name not in instance.__dict__:
+            return self.default
+        return instance.__dict__[self.name]
+
+
+    def __set__(self, instance, value):
+        self._validate(value)       #New data validation method
+
+        old_value = instance.__dict__.get(
+            self.name,
+            self.default,
+        )
+
+        instance.__dict__[self.name] = value
+
+        if old_value != value:
+            instance._state.mark_dirty(self.name)       #Usage of state instances
+
+    #Required and right type validation
+    def _validate(self, value):
+        if value is None:
+            if self.required:
+                raise TypeError(f"Field {self.name} is required!")
+            return
+        if not isinstance(value, self.field_type):
+            raise TypeError(f"Field {self.name} must be of type {self.field_type.__name__}!")
+
+
+    def __delete__(self, instance):
+        pass
+
 # Metaclass used so the object class can discover its own attributes (fields)
 # Not really necessary for a light ORM per se, but it offers scalability
 class ModelMeta(type):
     def __new__(mcls, name, bases, attrs):
         fields = {}
+
+        for base in bases:
+            fields.update(
+                getattr(base, "__fields__", {})
+            )
 
         for key, value in attrs.items():
             if isinstance(value, Field):
@@ -17,73 +71,103 @@ class Model(metaclass=ModelMeta):
 
     # Should allow us to create an object instance
     def __init__(self, **kwargs):
-        pass
 
-    #CRUD methods
+        self._state = ModelState()  #This wil instantiate a new ModelState fore very Model instance
+
+        for field_name, field in self.__fields__.items():
+            if field_name in kwargs:
+                setattr(self, field_name, kwargs[field_name]) #setattr() lets Field descriptor do validation and stuff
+            elif field.default is not None:
+                setattr(self, field_name, field.default)
+
+    #This method will simulate the database success on saving the object
+    def mark_persisted(self):
+        values = {}
+
+        for field_name in self.__fields__:
+            values[field_name] = getattr(self, field_name)
+
+        self._state.mark_persisted(values)
+
+
+    # CRUD methods
+    # When interacting with table/Model
+    #         User
+    #          │
+    #   ┌──────┼──────┐
+    #   │      │      │
+    # create  get  filter
 
     #CREATE: insert a new record
-    def create(self):
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def create(cls, **kwargs):
         pass
     #READ: get by id, get all, get by value in field, get containing...
-    def get_by_id(self, record_id):
+    #Is a class method because this operation does not require an instance of the object
+
+    @classmethod
+    def get_by_id(cls, record_id):
         pass
 
-    def get_all(self):
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def get_all(cls):
         pass
 
-    def get_by_field(self, record_field, value):
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def get_by_field(cls, record_field, value):
         pass
 
-    def get_all_matching(self, value):
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def get_all_matching(cls, value):
         pass
+
+    #Is a class method because this operation does not require an instance of the object
+    @classmethod
+    def get(cls, **kwargs):
+        pass
+
+    # When interacting with a specific database row : Update/Delete
     #UPDATE: ...
+    #This method acts on a specific instance
     def update(self, **kwargs):
         pass
+
     #DELETE: ...
+    #This method acts on a specific instance
     def delete(self):
         pass
-    pass
 
-class Field:
-    field_type = None
-    sql_type = None
 
-    def __init__(self, required=False, default=None, column = None):
-        self.required = required
-        self.default = default
-        self.column = column
+#ModelState class : will keep trace of the database-state related of a model instance
+class ModelState:
 
-    def __set_name__(self, owner, name):
-        self.name = name
-        if self.column is None:     #Separating database name from class name
-            self.column = name
+    def __init__(self):
+        self.persisted = False
+        self.original_values = {}
+        self.dirty_fields = set()
 
-    def __get__(self, instance, owner=None):
-        if instance is None:
-            return self
-        return instance.__dict__.__get__(self.name)
 
-    def __set__(self, instance, value):
-        # Check if accepts nullable (None -> required)
-        if value is None and self.required:
-            raise TypeError(f"Field is required. <{self.name}> cannot be None")
+    def mark_dirty(self, field_name):
+        self.dirty_fields.add(field_name)
 
-        # Field type validation -> Python side
-        if not isinstance(value, self.field_type):
-            raise TypeError(
-                f"{self.name} must be of type {self.field_type.__name__}"
-            )
-        # End: field type validation
 
-        # A dictionary or other mapping object used to store an object's (writable) attributes.
-        instance.__dict__[self.name] = value
+    def mark_persisted(self, values):
+        self.persisted = True
+        self.original_values = values.copy()
+        self.dirty_fields.clear()
 
-    def __delete__(self, instance):
-        pass
+    def mark_deleted(self):
+        self.persisted = False
+
+
+#This class allows incorporate metadata onf Field properties on a class
 
 
 class IntField(Field):
-    field_type = int
     sql_type = "INTEGER"
 
     def __init__(self, primary_key=False, required=False, default=None):
@@ -92,7 +176,6 @@ class IntField(Field):
 
 
 class FloatField(Field):
-    field_type = float
     sql_type = "FLOAT"
 
     # def __init__(self, required=False, default=None):
@@ -100,7 +183,6 @@ class FloatField(Field):
 
 
 class CharField(Field):
-    field_type = str
     sql_type = "VARCHAR"
 
     def __init__(self, size, primary_key=False, required=False, default=None):
@@ -110,7 +192,6 @@ class CharField(Field):
 
 
 class BoolField(Field):
-    field_type = bool
     sql_type = "BOOLEAN"
 
     # def __init__(self, required=False, default=None):
